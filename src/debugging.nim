@@ -11,7 +11,7 @@ when isDebug:
 
   proc debugLogging*(level, procName, message:string): void =
     let nowTime = now().format("yyyy-MM-dd HH:mm:ss")
-    let log = &"[{level}]:{procName} -> {message} : " & nowTime
+    let log = &"[{level}]:{procName} -> {message} -> " & nowTime
     echo log
     let f = open(getAppDir() / "log" / "log.txt", fmAppend)
     f.writeLine(log)
