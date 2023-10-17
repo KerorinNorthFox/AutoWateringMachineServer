@@ -1,3 +1,5 @@
 nimcache/
 nimblecache/
 htmldocs/
+src/key/private.key
+build/
