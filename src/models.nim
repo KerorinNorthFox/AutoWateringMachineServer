@@ -6,7 +6,13 @@ import
   norm/sqlite,
   ./debugging
 
+# db接続
+proc connectDB*(): auto =
+  let db_path = getAppDir() / "db.sqlite"
+  defer: debugLogging("INFO", "connectDB", "Connecting to DB.")
+  open(db_path, "", "", "")
 
+#================================================================
 type Account* = ref object of Model
   username*: string
   password*: string
@@ -15,13 +21,14 @@ type Account* = ref object of Model
 proc newAccount*(username="", password="", email=""): Account =
   Account(username:username, password:password, email:email)
 
-#================================================================
-# db接続
-proc connectDB*(): auto =
-  let db_path = getAppDir() / "db.sqlite"
-  defer: debugLogging("INFO", "connectDB", "Connecting to DB.")
-  open(db_path, "", "", "")
+proc readAccountFromDB*(username:string): Account =
+  var account = newAccount()
+  let dbConn = connectDB()
+  dbConn.select(account, "username = ?", username)
+  return account
 
+
+#================================================================
 # db作成
 proc createDB*(): void =
   let dbConn = connectDB()
@@ -32,6 +39,5 @@ proc createDB*(): void =
 # dbにinsert
 proc insertDB*[T](model:var T): void =
   let dbConn = connectDB()
-  with dbConn:
-    insert(model)
+  dbConn.insert(model)
   debugLogging("SUCCESS", "insertDB", &"Insert {T.type.`$`} data to tables.")
