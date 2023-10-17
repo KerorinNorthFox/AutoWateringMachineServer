@@ -32,11 +32,17 @@ task buildApp, "Build the application.":
 # Testをビルドするタスク
 task buildTest, "Build the test.":
   let
+    file = commandLineParams()[^1]
     build_path = "./test" / "build"
-    app_path = "./test" / "test"
+    app_path = "./test" / file
+
+  if not fileExists(app_path & ".nim"):
+    echo "[FAILED]:No such file."
+    return
+
   mkdir(build_path)
   exec &"nim c {app_path}.nim"
-  mvFile(app_path, build_path / "test")
+  mvFile(app_path, build_path / file)
 
 
 
