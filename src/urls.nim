@@ -5,9 +5,9 @@ import
 
 let
   urlPatterns* = @[
-  pattern("/api", api, HttpGet), # ドメイン
-  pattern("/api/auth", auth, HttpPost), # アカウント認証
-  pattern("/api/create_account", createAccount, HttpPost) # アカウント作成
+  pattern("/", api, HttpGet), # ドメイン
+  pattern("/auth", auth, HttpPost), # アカウント認証
+  pattern("/create_account", createAccount, HttpPost) # アカウント作成
   ]
 
   account_urlPatterns* = @[
