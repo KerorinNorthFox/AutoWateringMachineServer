@@ -1,5 +1,6 @@
 import
   std/json,
+  std/strformat,
   std/with,
   prologue,
   norm/model,
@@ -23,7 +24,7 @@ proc auth*(ctx:Context) {.async.} =
   # TODO: ユーザーIDでJWTしてトークンを返す処理
 
 # アカウント作成
-proc create_account*(ctx:Context) {.async.} =
+proc createAccount*(ctx:Context) {.async.} =
   debugLogging("POST", "api/create_account", "HttpPost comes.")
   var jsonBody = ctx.request.body.parseJson()
   # json構造が違うときにHttp400
@@ -31,6 +32,10 @@ proc create_account*(ctx:Context) {.async.} =
     resp("Bad request : Wrong json structure.", Http400)
     debugLogging("HTTP400", "api/create_account", "Wrong json structure.")
     return
+  debugLogging("INFO",
+    "api/create_account",
+    &"""Received data -> username:"{jsonBody["username"].getStr()}", pw:"{jsonBody["password"].getStr()}", email:"{jsonBody["email"].getStr()}" """
+  )
   # DBにアカウントを作成する処理
   var account = newAccount(
     username=jsonBody["username"].getStr(),
@@ -47,16 +52,20 @@ proc create_account*(ctx:Context) {.async.} =
   debugLogging("SUCCESS", "api/create_account", "Success to create account.")
 
 # アカウント情報読み込み
-proc read_account*(ctx:Context) {.async.} =
+proc readAccount*(ctx:Context) {.async.} =
+  var jsonBody = ctx.request.body.parseJson()
+  # json構造が違うときにHttp400
+  if jsonBody.checkJsonKeys(@["username"]):
+    resp("Bad request : Wrong json structure.", Http400)
   # TODO:アカウントread
-  discard
+  var account = readAccountFromDB(jsonBody["username"].getStr())
 
 # アカウント情報更新
-proc update_account*(ctx:Context) {.async.} =
+proc updateAccount*(ctx:Context) {.async.} =
   # TODO:アカウントupdate
   discard
 
 # アカウント削除
-proc delete_account*(ctx:Context) {.async.} =
+proc deleteAccount*(ctx:Context) {.async.} =
   # TODO:アカウントdelete
   discard
