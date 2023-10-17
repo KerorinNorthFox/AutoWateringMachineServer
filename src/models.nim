@@ -1,7 +1,6 @@
 import
   std/os,
   std/strformat,
-  std/with,
   norm/model,
   norm/sqlite,
   ./debugging
@@ -21,6 +20,7 @@ type Account* = ref object of Model
 proc newAccount*(username="", password="", email=""): Account =
   Account(username:username, password:password, email:email)
 
+# AccountをDBからread
 proc readAccountFromDB*(username:string): Account =
   var account = newAccount()
   let dbConn = connectDB()

@@ -33,8 +33,8 @@ task buildApp, "Build the application.":
 task buildTest, "Build the test.":
   let
     file = commandLineParams()[^1]
-    build_path = "./test" / "build"
-    app_path = "./test" / file
+    build_path = "./tests" / "build"
+    app_path = "./tests" / file
 
   if not fileExists(app_path & ".nim"):
     echo "[FAILED]:No such file."
@@ -43,6 +43,7 @@ task buildTest, "Build the test.":
   mkdir(build_path)
   exec &"nim c {app_path}.nim"
   mvFile(app_path, build_path / file)
+  exec &"./{build_path}/{file}"
 
 
 

@@ -5,4 +5,4 @@ createDB()
 var account = newAccount(username="kerorinnf", password="pw", email="a@g")
 insertDB(account)
 var a = readAccountFromDB("kerorinnf")
-echo a[]
+doAssert a.type.`$` == "Account"
