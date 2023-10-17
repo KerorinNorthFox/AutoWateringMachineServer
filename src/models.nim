@@ -8,7 +8,7 @@ import
 # db接続
 proc connectDB*(): auto =
   let db_path = getAppDir() / "db.sqlite"
-  defer: debugLogging("INFO", "connectDB", "Connecting to DB.")
+  defer: DebugLogging("INFO", "connectDB", "Connecting to DB.")
   open(db_path, "", "", "")
 
 #================================================================
@@ -21,12 +21,13 @@ proc newAccount*(username="", password="", email=""): Account =
   Account(username:username, password:password, email:email)
 
 # AccountをDBからread
+# TODO:emailでselectする
 proc readAccountFromDB*(username:string): Account =
   var account = newAccount()
   let dbConn = connectDB()
   dbConn.select(account, "username = ?", username)
+  DebugLogging("SUCCESS", "readAccountFromDB", &"Read {username}'s data from Account tables.")
   return account
-
 
 #================================================================
 # db作成
@@ -34,10 +35,10 @@ proc createDB*(): void =
   let dbConn = connectDB()
   dbConn.createTables(newAccount())
   # TODO:ここにモデルを随時追加
-  debugLogging("SUCCESS", "createDB", "Create tables.")
+  DebugLogging("SUCCESS", "createDB", "Create tables.")
 
 # dbにinsert
 proc insertDB*[T](model:var T): void =
   let dbConn = connectDB()
   dbConn.insert(model)
-  debugLogging("SUCCESS", "insertDB", &"Insert {T.type.`$`} data to tables.")
+  DebugLogging("SUCCESS", "insertDB", &"Insert {T.type.`$`} data to tables.")

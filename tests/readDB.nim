@@ -1,5 +1,6 @@
 import
-  ../src/models
+  ../src/models,
+  norm/sqlite
 
 createDB()
 var account = newAccount(username="kerorinnf", password="pw", email="a@g")
