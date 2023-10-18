@@ -6,9 +6,10 @@ import
 const isDebug {.booldefine.} : bool = true
 
 when isDebug:
+  let log_path = getAppDir() / "log"
   # ログを保存するディレクトリがないとき作る
-  if not dirExists(getAppDir() / "log"):
-    createDir(getAppDir() / "log")
+  if not dirExists(log_path):
+    createDir(log_path)
 
   # ログを出力
   proc DebugLogging*(level, procName, message:string): void =
@@ -23,7 +24,7 @@ when isDebug:
   template APILogging*(reqMethod, path, message:string, body:untyped): untyped =
     DebugLogging(reqMethod, path, "Http"&reqMethod&" comes.")
     body
-    DebugLogging("SUCCESS", path, message)
+    DebugLogging("200", path, message)
 
 else:
   proc DebugLogging*(level, text:string): void =
