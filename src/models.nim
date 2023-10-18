@@ -1,6 +1,7 @@
 import
   std/os,
   std/strformat,
+  std/strutils,
   norm/model,
   norm/sqlite,
   ./debugging
@@ -20,13 +21,25 @@ type Account* = ref object of Model
 proc newAccount*(username="", password="", email=""): Account =
   Account(username:username, password:password, email:email)
 
+# アカウントの重複を確認する
+proc checkDuplicateAccount*(value:string or int): bool =
+  let key: string = (if value.type is int: "id" else: "email")
+  let dbConn = connectDB()
+  let isOk = dbConn.exists(Account, &"{key} = ?", value) # valueはemailかid
+  DebugLogging("INFO", "checkDuplicateAccount", &"Checked if account is duplicate -> {$isOk}")
+  return isOk
+
 # AccountをDBからread
-# TODO:emailでselectする
-proc readAccountFromDB*(username:string): Account =
+proc readAccountFromDB*(value:string or int): Account =
+  let key: string = (if value.type is int: "id" else: "email")
   var account = newAccount()
   let dbConn = connectDB()
-  dbConn.select(account, "username = ?", username)
-  DebugLogging("SUCCESS", "readAccountFromDB", &"Read {username}'s data from Account tables.")
+  if not dbConn.exists(Account, &"{key} = ?", value): # # valueはemailかid
+    account = nil
+    DebugLogging("ERROR", "readAccountFromDB", &"Read nobody's data from Account tables.")
+  else:
+    dbConn.select(account, &"{key} = ?", value)
+    DebugLogging("SUCCESS", "readAccountFromDB", &"Read {account.username}'s data from Account tables.")
   return account
 
 #================================================================
@@ -35,10 +48,10 @@ proc createDB*(): void =
   let dbConn = connectDB()
   dbConn.createTables(newAccount())
   # TODO:ここにモデルを随時追加
-  DebugLogging("SUCCESS", "createDB", "Create tables.")
+  DebugLogging("INFO", "createDB", "Created tables.")
 
 # dbにinsert
 proc insertDB*[T](model:var T): void =
   let dbConn = connectDB()
   dbConn.insert(model)
-  DebugLogging("SUCCESS", "insertDB", &"Insert {T.type.`$`} data to tables.")
+  DebugLogging("INFO", "insertDB", &"Inserted {T.type.`$`} data to tables.")
