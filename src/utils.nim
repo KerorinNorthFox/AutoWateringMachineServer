@@ -13,9 +13,17 @@ proc loadPrivateKey*(): string =
 
 # jsonの中に全てのキーが存在するか確認
 proc checkJsonKeys*(jsonBody:JsonNode, keys:seq[string]): bool =
+  if jsonBody.len != keys.len:
+    DebugLogging("ERROR", "checkJsonKeys", "Detected excess keys.")
+    return false
   for key in keys:
     if not jsonBody.hasKey(key):
       DebugLogging("ERROR", "checkJsonKeys", &"JsonBody has not key '{key}'.")
-      return true
+      return false
   DebugLogging("SUCCESS", "checkJsonKeys", "All key is OK.")
-  return false
+  return true
+
+# jwtでトークンを生成
+proc generateJwt*(id:int): string =
+  DebugLogging("INFO", "generateJwt", &"Generated token by id '{$id}'")
+  return "token here"
