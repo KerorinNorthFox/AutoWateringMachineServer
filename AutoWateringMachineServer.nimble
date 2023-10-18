@@ -24,7 +24,7 @@ task buildApp, "Build the application.":
     env_path = "./src" / ".env"
     key_path = "./src" / "key"
   mkdir(build_path)
-  exec &"nim c {app_path}.nim"
+  exec &"nim c --hints:off {app_path}.nim"
   mvFile(app_path, build_path / "app")
   cpFile(env_path, build_path / ".env")
   cpDir(key_path, build_path / "key")
