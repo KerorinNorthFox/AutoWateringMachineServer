@@ -24,7 +24,7 @@ task buildApp, "Build the application.":
     env_path = "./src" / ".env"
     key_path = "./src" / "key"
   mkdir(build_path)
-  exec &"nim c {app_path}.nim"
+  exec &"nim c --hints:off {app_path}.nim"
   mvFile(app_path, build_path / "app")
   cpFile(env_path, build_path / ".env")
   cpDir(key_path, build_path / "key")
@@ -32,11 +32,18 @@ task buildApp, "Build the application.":
 # Testをビルドするタスク
 task buildTest, "Build the test.":
   let
-    build_path = "./test" / "build"
-    app_path = "./test" / "test"
+    file = commandLineParams()[^1]
+    build_path = "./tests" / "build"
+    app_path = "./tests" / file
+
+  if not fileExists(app_path & ".nim"):
+    echo "[FAILED]:No such file."
+    return
+
   mkdir(build_path)
   exec &"nim c {app_path}.nim"
-  mvFile(app_path, build_path / "test")
+  mvFile(app_path, build_path / file)
+  exec &"./{build_path}/{file}"
 
 
 
