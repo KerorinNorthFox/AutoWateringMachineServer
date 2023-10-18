@@ -7,7 +7,7 @@ let
   urlPatterns* = @[
   pattern("/", api, HttpGet), # ドメイン
   pattern("/auth", auth, HttpPost), # アカウント認証
-  pattern("/create_account", createAccount, HttpPost) # アカウント作成
+  pattern("/create-account", createAccount, HttpPost) # アカウント作成
   ]
 
   account_urlPatterns* = @[
