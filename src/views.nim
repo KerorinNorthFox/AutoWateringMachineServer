@@ -1,6 +1,6 @@
 import
   std/json,
-  std/marshal,
+  # std/marshal,
   std/strformat,
   prologue,
   norm/model,
@@ -12,59 +12,71 @@ import
 
 # ドメイン
 proc api*(ctx:Context) {.async.} =
-  resp "ok"
+  resp plainTextResponse("ok")
 
 # アカウント認証
 proc auth*(ctx:Context) {.async.} =
   APILogging(ctx.request.reqMethod.`$`, ctx.request.path, "Success to auth."):
-    let jsonBody = ctx.request.body.parseJson()
+    let req = ctx.request.body.parseJson()
     # json構造が違うときにHttp400
-    if jsonBody.checkJsonKeys(@["email", "password"]):
-      resp("Bad request : Wrong json structure.", Http400)
-      DebugLogging("ERROR", ctx.request.path, "Wrong json structure.")
+    if not req.checkJsonKeys(@["email", "password"]):
+      resp(jsonResponse(%*{"isSuccess":"false", "message":"Bad request : Wrong json structure.", "token":""}, Http400))
+      DebugLogging("400", ctx.request.path, "Wrong json structure.")
       return
-    # TODO: DBからアカウントのデータを持ってくる処理＆なかったらerror400を送る
+    DebugLogging("INFO",
+      ctx.request.path,
+      &"""Received data -> email:"{req["email"].getStr()}", pw:"{req["password"].getStr()}" """
+    )
+    # DBからアカウントのデータを持ってくる処理＆なかったらerror400を送る
+    var account = readAccountFromDB(req["email"].getStr())
+    if account == nil:
+      resp(jsonResponse(%*{"is_success":"false", "message":"No such an account exists.", "token":""}, Http400))
+      DebugLogging("400", ctx.request.path, "No such an account exists.")
+      return
     # TODO: ユーザーIDでJWTしてトークンを返す処理
+    let token = generateJwt(account.id)
+    resp(jsonResponse(%*{"is_success":"true", "message":"", "token":token}))
+
 
 # アカウント作成
 proc createAccount*(ctx:Context) {.async.} =
   APILogging(ctx.request.reqMethod.`$`, ctx.request.path, "Success to create account."):
-    var jsonBody = ctx.request.body.parseJson()
+    let req = ctx.request.body.parseJson()
     # json構造が違うときにHttp400
-    if jsonBody.checkJsonKeys(@["username", "password", "email"]):
-      resp("Bad request : Wrong json structure.", Http400)
-      DebugLogging("ERROR", ctx.request.path, "Wrong json structure.")
+    if not req.checkJsonKeys(@["username", "password", "email"]):
+      resp(jsonResponse(%*{"is_success":"false", "message":"Bad request : Wrong json structure."}, Http400))
+      DebugLogging("400", ctx.request.path, "Wrong json structure.")
       return
     DebugLogging("INFO",
       ctx.request.path,
-      &"""Received data -> username:"{jsonBody["username"].getStr()}", pw:"{jsonBody["password"].getStr()}", email:"{jsonBody["email"].getStr()}" """
+      &"""Received data -> username:"{req["username"].getStr()}", pw:"{req["password"].getStr()}", email:"{req["email"].getStr()}" """
     )
+    # emailが重複しているときreturn
+    if checkDuplicateAccount(req["email"].getStr()):
+      resp(jsonResponse(%*{"is_success":"false", "message":"An account with the given email already exists."}, Http400))
+      DebugLogging("400", ctx.request.path, "An account with the give email already exists.")
+      return
     # DBにアカウントを作成する処理
     var account = newAccount(
-      username=jsonBody["username"].getStr(),
-      password=jsonBody["password"].getStr(),
-      email=jsonBody["email"].getStr()
+      username=req["username"].getStr(),
+      password=req["password"].getStr(),
+      email=req["email"].getStr()
       )
     try:
       account.insertDB()
     except:
-      resp(jsonResponse(%*{"isSuccess":"false", "message":"Server database is something wrong."}, Http400))
-      DebugLogging("ERROR", ctx.request.path, "Insert db is something wrong.")
+      resp(jsonResponse(%*{"is_success":"false", "message":"Server database is something wrong."}, Http400))
+      DebugLogging("400", ctx.request.path, "Inserting to db is something wrong.")
       return
-    resp(jsonResponse(%*{"isSuccess":"true", "message":""}))
+    resp(jsonResponse(%*{"is_success":"true", "message":""}))
 
 # アカウント情報読み込み
 proc readAccount*(ctx:Context) {.async.} =
+  # TODO:アカウント情報取得
   APILogging(ctx.request.reqMethod.`$`, ctx.request.path, "Success to read account."):
-    var jsonBody = ctx.request.body.parseJson()
-    # json構造が違うときにHttp400
-    if jsonBody.checkJsonKeys(@["email"]):
-      resp("Bad request : Wrong json structure.", Http400)
-      DebugLogging("HTTP400", "api/readAccount", "Wrong json structure.")
-      return
-    # TODO:usernameが違うときの処理
-    var account = readAccountFromDB(jsonBody["username"].getStr())
-    resp jsonResponse(parseJson($$account))
+    # var account = readAccountFromDB("id", 1)
+    # resp jsonResponse(parseJson($$account))
+    discard
 
 # アカウント情報更新
 proc updateAccount*(ctx:Context) {.async.} =
