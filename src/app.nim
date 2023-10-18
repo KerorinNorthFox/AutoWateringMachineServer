@@ -1,6 +1,7 @@
 import
   std/os,
   prologue,
+  ./debugging,
   ./urls
 
 from ./models import createDB
@@ -21,11 +22,12 @@ proc init(_:type App): App =
     )
   result = App()
   result.app = newApp(settings=settings)
-  result.app.addRoute(urlPatterns, "")
-  result.app.addRoute(account_urlPatterns, "/account")
+  result.app.addRoute(urlPatterns, "/api")
+  result.app.addRoute(account_urlPatterns, "/api/account")
 
 # サーバースタート
 proc start(self:App): void =
+  DebugLogging("ServerStart", "start", "===========================================================\nStart the server.")
   if not fileExists(getAppDir() / "db.sqlite"): # db.sqliteがない場合dbを作成
     createDB()
   self.app.run()
