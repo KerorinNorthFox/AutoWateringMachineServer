@@ -2,6 +2,7 @@ import
   std/json,
   # std/marshal,
   std/strformat,
+  std/times,
   prologue,
   norm/model,
   norm/sqlite
@@ -20,23 +21,24 @@ proc auth*(ctx:Context) {.async.} =
     let req = ctx.request.body.parseJson()
     # json構造が違うときにHttp400
     if not req.checkJsonKeys(@["email", "password"]):
-      resp(jsonResponse(%*{"isSuccess":"false", "message":"Bad request : Wrong json structure.", "token":""}, Http400))
+      resp(jsonResponse(%*{"isSuccess":"false", "message":"Bad request : Wrong json structure.", "token":"", "deadline":""}, Http400))
       DebugLogging("400", ctx.request.path, "Wrong json structure.")
       return
     DebugLogging("INFO",
       ctx.request.path,
       &"""Received data -> email:"{req["email"].getStr()}", pw:"{req["password"].getStr()}" """
     )
-    # DBからアカウントのデータを持ってくる処理＆なかったらerror400を送る
-    var account = readAccountFromDB(req["email"].getStr())
+    # DBからアカウントのデータを持ってくる＆なかったらerror400を送る
+    var account: Account = readAccountFromDB(req["email"].getStr())
     if account == nil:
-      resp(jsonResponse(%*{"is_success":"false", "message":"No such an account exists.", "token":""}, Http400))
+      resp(jsonResponse(%*{"is_success":"false", "message":"No such an account exists.", "token":"", "deadline":""}, Http400))
       DebugLogging("400", ctx.request.path, "No such an account exists.")
       return
-    # TODO: ユーザーIDでJWTしてトークンを返す処理
-    let token = generateJwt(account.id)
-    resp(jsonResponse(%*{"is_success":"true", "message":"", "token":token}))
-
+    # ユーザーIDでJWT認証してトークンを返す
+    let deadlineHour: int = 1
+    let token: string = generateJwt(account.id, deadlineHour)
+    let deadline: string = $((getTime()+deadlineHour.hours).toUnix())
+    resp(jsonResponse(%*{"is_success":"true", "message":"", "token":token, "deadline":deadline}))
 
 # アカウント作成
 proc createAccount*(ctx:Context) {.async.} =
@@ -57,7 +59,7 @@ proc createAccount*(ctx:Context) {.async.} =
       DebugLogging("400", ctx.request.path, "An account with the give email already exists.")
       return
     # DBにアカウントを作成する処理
-    var account = newAccount(
+    var account: Account = newAccount(
       username=req["username"].getStr(),
       password=req["password"].getStr(),
       email=req["email"].getStr()

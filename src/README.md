@@ -61,7 +61,7 @@ application/json
 ### Response
 application/json
 ```
-{"token":string}
+{"is_success":string, "message":string, "token":string, "deadline":string}
 ```
 
 ## /api/account
