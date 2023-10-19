@@ -11,7 +11,7 @@ let
   ]
 
   account_urlPatterns* = @[
-    pattern("/", readAccount, HttpPost, middlewares = @[checkTokenMiddleware()]),
+    pattern("/", readAccount, HttpGet, middlewares = @[checkTokenMiddleware()]),
     pattern("/update", updateAccount, HttpPost, middlewares = @[checkTokenMiddleware()]),
     pattern("/delete", deleteAccount, HttpPost, middlewares = @[checkTokenMiddleware()]),
   ]
