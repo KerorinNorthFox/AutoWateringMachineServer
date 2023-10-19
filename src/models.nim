@@ -29,6 +29,17 @@ proc checkDuplicateAccount*(value:string or int): bool =
   DebugLogging("INFO", "checkDuplicateAccount", &"Checked if account is duplicate -> {$isOk}")
   return isOk
 
+# パスワードが合っているか確認する
+proc checkAccountFromDB*(email, password:string): bool =
+  var account: Account = newAccount()
+  let dbConn = connectDB()
+  dbConn.select(account, "email = ?", email)
+  if account.password != password:
+    DebugLogging("ERROR", "checkAccountFromDB", &"Password is incorrect.")
+    return false
+  DebugLogging("SUCCESS", "checkAccountFromDB", &"Password is correct.")
+  return true
+
 # AccountをDBからread
 proc readAccountFromDB*(value:string or int): Account =
   let key: string = (if value.type is int: "id" else: "email")

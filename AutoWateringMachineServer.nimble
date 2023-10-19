@@ -41,6 +41,7 @@ task buildTest, "Build the test.":
     return
 
   mkdir(build_path)
+  cpDir("./src/key", build_path / "key")
   exec &"nim c {app_path}.nim"
   mvFile(app_path, build_path / file)
   exec &"./{build_path}/{file}"
