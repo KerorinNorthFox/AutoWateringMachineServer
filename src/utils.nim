@@ -1,11 +1,14 @@
 import
   std/json,
+  std/os,
   std/strformat,
+  std/times,
+  jwt,
   ./debugging
 
 # 秘密鍵を読み込む
 proc loadPrivateKey*(): string =
-  let f: File = open("./key/private.key", fmRead)
+  let f: File = open(getAppDir() / "key/private.key", fmRead)
   defer:
     f.close()
     DebugLogging("INFO", "loadPrivateKey", "Loaded private key.")
@@ -24,6 +27,18 @@ proc checkJsonKeys*(jsonBody:JsonNode, keys:seq[string]): bool =
   return true
 
 # jwtでトークンを生成
-proc generateJwt*(id:int): string =
+proc generateJwt*(id:int, deadlineHour:int): string =
+  let private_key: string = loadPrivateKey()
+  var token = toJwt(%*{
+    "header":{
+      "alg":"HS256",
+      "typ":"JWT"
+    },
+    "claims":{
+      "userId":id,
+      "exp":(getTime() + deadlineHour.hours).toUnix() # TODO: 期限を変える
+    }
+  })
+  token.sign(private_key)
   DebugLogging("INFO", "generateJwt", &"Generated token by id '{$id}'")
-  return "token here"
+  return $token
