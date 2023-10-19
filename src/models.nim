@@ -9,8 +9,8 @@ import
 # db接続
 proc connectDB*(): auto =
   let db_path = getAppDir() / "db.sqlite"
-  defer: DebugLogging("INFO", "connectDB", "Connecting to DB.")
-  open(db_path, "", "", "")
+  result = open(db_path, "", "", "")
+  DebugLogging("INFO", "connectDB", "Connecting to DB.")
 
 #================================================================
 type Account* = ref object of Model
