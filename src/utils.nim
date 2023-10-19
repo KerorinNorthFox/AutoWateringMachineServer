@@ -1,6 +1,8 @@
 import
   std/json,
   std/strformat,
+  std/times,
+  jwt,
   ./debugging
 
 # 秘密鍵を読み込む
@@ -25,5 +27,17 @@ proc checkJsonKeys*(jsonBody:JsonNode, keys:seq[string]): bool =
 
 # jwtでトークンを生成
 proc generateJwt*(id:int): string =
+  let private_key = loadPrivateKey()
+  var token = toJwt(%*{
+    "header":{
+      "alg":"HS256",
+      "typ":"JWT"
+    },
+    "claims":{
+      "userId":id,
+      "exp":(getTime() + 3.days).toUnix() # TODO: 期限を変える
+    }
+  })
+  token.sign(private_key)
   DebugLogging("INFO", "generateJwt", &"Generated token by id '{$id}'")
-  return "token here"
+  return $token
