@@ -80,10 +80,10 @@ proc createAccount*(ctx:Context) {.async.} =
 # アカウント情報読み込み
 proc readAccount*(ctx:Context) {.async.} =
   # TODO:アカウント情報取得
-  APILogging(ctx.request.reqMethod.`$`, ctx.request.path, "Success to read account."):
-    # var account = readAccountFromDB("id", 1)
-    # resp jsonResponse(parseJson($$account))
-    discard
+  # var account = readAccountFromDB("id", 1)
+  # resp jsonResponse(parseJson($$account))
+  resp "ok"
+  discard
 
 # アカウント情報更新
 proc updateAccount*(ctx:Context) {.async.} =
