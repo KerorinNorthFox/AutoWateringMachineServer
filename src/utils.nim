@@ -1,5 +1,6 @@
 import
   std/json,
+  std/os,
   std/strformat,
   std/times,
   jwt,
@@ -7,7 +8,7 @@ import
 
 # 秘密鍵を読み込む
 proc loadPrivateKey*(): string =
-  let f: File = open("./key/private.key", fmRead)
+  let f: File = open(getAppDir() / "key/private.key", fmRead)
   defer:
     f.close()
     DebugLogging("INFO", "loadPrivateKey", "Loaded private key.")
