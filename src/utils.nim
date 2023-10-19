@@ -27,8 +27,8 @@ proc checkJsonKeys*(jsonBody:JsonNode, keys:seq[string]): bool =
   return true
 
 # jwtでトークンを生成
-proc generateJwt*(id:int): string =
-  let private_key = loadPrivateKey()
+proc generateJwt*(id:int, deadlineHour:int): string =
+  let private_key: string = loadPrivateKey()
   var token = toJwt(%*{
     "header":{
       "alg":"HS256",
@@ -36,7 +36,7 @@ proc generateJwt*(id:int): string =
     },
     "claims":{
       "userId":id,
-      "exp":(getTime() + 3.days).toUnix() # TODO: 期限を変える
+      "exp":(getTime() + deadlineHour.hours).toUnix() # TODO: 期限を変える
     }
   })
   token.sign(private_key)
