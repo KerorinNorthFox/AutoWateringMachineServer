@@ -34,10 +34,15 @@ proc auth*(ctx:Context) {.async.} =
       resp(jsonResponse(%*{"is_success":"false", "message":"No such an account exists.", "token":"", "deadline":""}, Http400))
       DebugLogging("400", ctx.request.path, "No such an account exists.")
       return
+    # パスワードが合っているか確認
+    if not checkAccountFromDB(req["email"].getStr(), req["password"].getStr()):
+      resp(jsonResponse(%*{"isSuccess":"false", "message":"Wrong password or email", "token":"", "deadline":""}, Http400))
+      DebugLogging("400", ctx.request.path, "Wrong password or email.")
+      return
     # ユーザーIDでJWT認証してトークンを返す
     let deadlineHour: int = 1
     let token: string = generateJwt(account.id, deadlineHour)
-    let deadline: string = $((getTime()+deadlineHour.hours).toUnix())
+    let deadline: string = $(getTime()+deadlineHour.hours)
     resp(jsonResponse(%*{"is_success":"true", "message":"", "token":token, "deadline":deadline}))
 
 # アカウント作成
