@@ -45,7 +45,6 @@ proc generateJwt*(id:int, deadlineHour:int): string =
 
 # jwtでトークン認証
 proc verifyJwt*(token:string): bool =
-  echo token
   let private_key:string = loadPrivateKey()
   try:
     let jwtToken = token.toJwT()

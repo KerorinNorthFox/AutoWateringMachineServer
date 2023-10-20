@@ -1,6 +1,5 @@
 import
   std/json,
-  # std/marshal,
   std/strformat,
   std/times,
   prologue,
@@ -21,29 +20,54 @@ proc auth*(ctx:Context) {.async.} =
     let req = ctx.request.body.parseJson()
     # json構造が違うときにHttp400
     if not req.checkJsonKeys(@["email", "password"]):
-      resp(jsonResponse(%*{"isSuccess":"false", "message":"Bad request : Wrong json structure.", "token":"", "deadline":""}, Http400))
+      resp(jsonResponse(%*{
+        "isSuccess":"false",
+        "message":"Bad request : Wrong json structure.",
+        "token":"",
+        "deadline":""
+        }, Http400)
+      )
       DebugLogging("400", ctx.request.path, "Wrong json structure.")
       return
     DebugLogging("INFO",
       ctx.request.path,
       &"""Received data -> email:"{req["email"].getStr()}", pw:"{req["password"].getStr()}" """
     )
-    # DBからアカウントのデータを持ってくる＆なかったらerror400を送る
+    # DBからアカウントのデータを持ってくる＆なかったらhttp400を送る
     var account: Account = readAccountFromDB(req["email"].getStr())
     if account == nil:
-      resp(jsonResponse(%*{"is_success":"false", "message":"No such an account exists.", "token":"", "deadline":""}, Http400))
+      resp(jsonResponse(%*{
+        "is_success":"false",
+        "message":"No such an account exists.",
+        "token":"",
+        "deadline":""
+        }, Http400)
+      )
       DebugLogging("400", ctx.request.path, "No such an account exists.")
       return
     # パスワードが合っているか確認
     if not checkAccountFromDB(req["email"].getStr(), req["password"].getStr()):
-      resp(jsonResponse(%*{"isSuccess":"false", "message":"Wrong password or email", "token":"", "deadline":""}, Http400))
+      resp(jsonResponse(%*{
+        "isSuccess":"false",
+        "message":"Wrong password or email",
+        "token":"",
+        "deadline":""
+        }, Http400)
+      )
       DebugLogging("400", ctx.request.path, "Wrong password or email.")
       return
     # ユーザーIDでJWT認証してトークンを返す
-    let deadlineHour: int = 1
-    let token: string = generateJwt(account.id, deadlineHour)
-    let deadline: string = $(getTime()+deadlineHour.hours)
-    resp(jsonResponse(%*{"is_success":"true", "message":"", "token":token, "deadline":deadline}))
+    let
+      deadlineHour: int = 1
+      token: string = generateJwt(account.id, deadlineHour)
+      deadline: string = $(getTime()+deadlineHour.hours)
+    resp(jsonResponse(%*{
+      "is_success":"true",
+      "message":"",
+      "token":token,
+      "deadline":deadline
+      })
+    )
 
 # アカウント作成
 proc createAccount*(ctx:Context) {.async.} =
@@ -51,7 +75,11 @@ proc createAccount*(ctx:Context) {.async.} =
     let req = ctx.request.body.parseJson()
     # json構造が違うときにHttp400
     if not req.checkJsonKeys(@["username", "password", "email"]):
-      resp(jsonResponse(%*{"is_success":"false", "message":"Bad request : Wrong json structure."}, Http400))
+      resp(jsonResponse(%*{
+        "is_success":"false",
+        "message":"Bad request : Wrong json structure."
+        }, Http400)
+      )
       DebugLogging("400", ctx.request.path, "Wrong json structure.")
       return
     DebugLogging("INFO",
@@ -60,7 +88,11 @@ proc createAccount*(ctx:Context) {.async.} =
     )
     # emailが重複しているときreturn
     if checkDuplicateAccount(req["email"].getStr()):
-      resp(jsonResponse(%*{"is_success":"false", "message":"An account with the given email already exists."}, Http400))
+      resp(jsonResponse(%*{
+        "is_success":"false",
+        "message":"An account with the given email already exists."
+        }, Http400)
+      )
       DebugLogging("400", ctx.request.path, "An account with the give email already exists.")
       return
     # DBにアカウントを作成する処理
@@ -68,22 +100,48 @@ proc createAccount*(ctx:Context) {.async.} =
       username=req["username"].getStr(),
       password=req["password"].getStr(),
       email=req["email"].getStr()
-      )
+    )
     try:
       account.insertDB()
     except:
-      resp(jsonResponse(%*{"is_success":"false", "message":"Server database is something wrong."}, Http400))
+      resp(jsonResponse(%*{
+        "is_success":"false",
+        "message":"Server database is something wrong."
+        }, Http400)
+      )
       DebugLogging("400", ctx.request.path, "Inserting to db is something wrong.")
       return
-    resp(jsonResponse(%*{"is_success":"true", "message":""}))
+    resp(jsonResponse(%*{
+      "is_success":"true",
+      "message":""
+      })
+    )
 
 # アカウント情報読み込み
 proc readAccount*(ctx:Context) {.async.} =
-  # TODO:アカウント情報取得
-  # var account = readAccountFromDB("id", 1)
-  # resp jsonResponse(parseJson($$account))
-  resp "ok"
-  discard
+  let token = ctx.request.getHeader("Authorization")[0]
+  let id = decodeJwt(token)
+  # アカウント情報取得
+  var account = readAccountFromDB(id)
+  if account == nil:
+    resp(jsonResponse(%*{
+      "is_success":"false",
+      "message":"The account does not exist.",
+      "username":"",
+      "password":"",
+      "email":""
+      }, Http400)
+    )
+    DebugLogging("400", ctx.request.path, "The account does not exist.")
+    return
+  resp(jsonResponse(%*{
+    "is_success":"true",
+    "message":"",
+    "username":account.username,
+    "password":account.password,
+    "email":account.email
+    })
+  )
 
 # アカウント情報更新
 proc updateAccount*(ctx:Context) {.async.} =
