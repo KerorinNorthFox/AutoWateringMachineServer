@@ -8,7 +8,7 @@ import
 
 # db接続
 proc connectDB*(): auto =
-  let db_path = getAppDir() / "db.sqlite"
+  let db_path: string = getAppDir() / "db.sqlite"
   result = open(db_path, "", "", "")
   DebugLogging("INFO", "connectDB", "Connecting to DB.")
 
@@ -23,11 +23,11 @@ proc newAccount*(username="", password="", email=""): Account =
 
 # アカウントの重複を確認する
 proc checkDuplicateAccount*(value:string or int): bool =
-  let key: string = (if value.type is int: "id" else: "email")
-  let dbConn = connectDB()
-  let isOk = dbConn.exists(Account, &"{key} = ?", value) # valueはemailかid
+  let
+    key: string = (if value.type is int: "id" else: "email")
+    dbConn = connectDB()
+  result: bool = dbConn.exists(Account, &"{key} = ?", value) # valueはemailかid
   DebugLogging("INFO", "checkDuplicateAccount", &"Checked if account is duplicate -> {$isOk}")
-  return isOk
 
 # パスワードが合っているか確認する
 proc checkAccountFromDB*(email, password:string): bool =
@@ -42,9 +42,10 @@ proc checkAccountFromDB*(email, password:string): bool =
 
 # AccountをDBからread
 proc readAccountFromDB*(value:string or int): Account =
-  let key: string = (if value.type is int: "id" else: "email")
-  var account = newAccount()
-  let dbConn = connectDB()
+  var account: Account = newAccount()
+  let
+    key: string = (if value.type is int: "id" else: "email")
+    dbConn = connectDB()
   if not dbConn.exists(Account, &"{key} = ?", value): # # valueはemailかid
     account = nil
     DebugLogging("ERROR", "readAccountFromDB", &"Read nobody's data from Account tables.")
