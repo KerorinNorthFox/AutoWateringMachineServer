@@ -26,8 +26,8 @@ proc checkDuplicateAccount*(value:string or int): bool =
   let
     key: string = (if value.type is int: "id" else: "email")
     dbConn = connectDB()
-  result: bool = dbConn.exists(Account, &"{key} = ?", value) # valueはemailかid
-  DebugLogging("INFO", "checkDuplicateAccount", &"Checked if account is duplicate -> {$isOk}")
+  result = dbConn.exists(Account, &"{key} = ?", value) # valueはemailかid
+  DebugLogging("INFO", "checkDuplicateAccount", &"Checked if account is duplicate -> {$result}")
 
 # パスワードが合っているか確認する
 proc checkAccountFromDB*(email, password:string): bool =
@@ -40,7 +40,7 @@ proc checkAccountFromDB*(email, password:string): bool =
   DebugLogging("SUCCESS", "checkAccountFromDB", &"Password is correct.")
   return true
 
-# AccountをDBからread
+# アカウント情報読み取り
 proc readAccountFromDB*(value:string or int): Account =
   var account: Account = newAccount()
   let
@@ -53,6 +53,12 @@ proc readAccountFromDB*(value:string or int): Account =
     dbConn.select(account, &"{key} = ?", value)
     DebugLogging("SUCCESS", "readAccountFromDB", &"Read {account.username}'s data from Account tables.")
   return account
+
+# アカウントを更新
+proc updateAccountAtDB*(account:var Account): void =
+  let dbConn = connectDB()
+  dbConn.update(account)
+  DebugLogging("INFO", "updateAccountAtDB", &"Update {account.username}'s account infomation.")
 
 #================================================================
 # db作成

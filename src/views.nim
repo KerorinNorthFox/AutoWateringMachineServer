@@ -147,9 +147,40 @@ proc readAccount*(ctx:Context) {.async.} =
 
 # アカウント情報更新
 proc updateAccount*(ctx:Context) {.async.} =
-  # TODO:アカウントupdate
-  APILogging(ctx.request.reqMethod.`$`, ctx.request.path, "Success to update account."):
-    discard
+  let req: JsonNode = ctx.request.body.parseJson()
+  # json構造が違うときにHttp400
+  if not req.checkJsonKeys(@["username", "password", "email"]):
+    resp(jsonResponse(%*{
+      "is_success":"false",
+      "message":"Bad request : Wrong json structure."
+      }, Http400)
+    )
+    DebugLogging("400", ctx.request.path, "Wrong json structure.")
+    return
+  DebugLogging("INFO",
+    ctx.request.path,
+    &"""Received data -> username:"{req["username"].getStr()}", pw:"{req["password"].getStr()}", email:"{req["email"].getStr()}" """
+  )
+  let
+    username: string = req["username"].getStr()
+    password: string = req["password"].getStr()
+    email: string = req["email"].getStr()
+    token: string = ctx.request.getHeader("Authorization")[0]
+    id: int = decodeJwt(token)
+  var account = readAccountFromDB(id)
+  # アカウント情報更新
+  if req["username"].getStr() != "":
+    account.username = username
+  if req["password"].getStr() != "":
+    account.password = password
+  if req["email"].getStr() != "":
+    account.email = email
+  updateAccountAtDB(account)
+  resp(jsonResponse(%*{
+    "is_success":"true",
+    "message":""
+    })
+  )
 
 # アカウント削除
 proc deleteAccount*(ctx:Context) {.async.} =

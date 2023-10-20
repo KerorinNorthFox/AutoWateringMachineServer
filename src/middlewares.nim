@@ -13,7 +13,7 @@ proc checkTokenMiddleware*(): HandlerAsync =
           "message":"Authorization header requires."
           }, Http400)
         )
-        DebugLogging("ERROR", "checkTokenMiddleware", "Authorization header requires.")
+        DebugLogging("400", "checkTokenMiddleware", "Authorization header requires.")
         return
       # Tokenをチェック
       let token: string = ctx.request.getHeader("Authorization")[0]
@@ -24,7 +24,7 @@ proc checkTokenMiddleware*(): HandlerAsync =
           "message":"Invalid token."
           }, Http400)
         )
-        DebugLogging("ERROR", "checkTokenMiddleware", "Invalid token.")
+        DebugLogging("400", "checkTokenMiddleware", "Invalid token.")
         return
       DebugLogging("SUCCESS", "checkTokenMiddleware", "Authorization is successful.")
       await switch(ctx)
