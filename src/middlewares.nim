@@ -13,11 +13,10 @@ proc checkTokenMiddleware*(): HandlerAsync =
         return
       # Tokenをチェック
       let token = ctx.request.getHeader("Authorization")[0]
+      DebugLogging("INFO", "checkTokenMiddleware", "Got token : " & token)
       if not verifyJwt(token):
         resp(jsonResponse(%*{"is_success":"false", "message":"Invalid token."}, Http400))
         DebugLogging("ERROR", "checkTokenMiddleware", "Invalid token.")
         return
       DebugLogging("SUCCESS", "checkTokenMiddleware", "Authorization is successful.")
-      # Tokenからidを取り出す
-      let a = decodeJwt(token)
       await switch(ctx)
