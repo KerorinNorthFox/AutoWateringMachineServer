@@ -8,7 +8,7 @@ import
 
 # db接続
 proc connectDB*(): auto =
-  let db_path = getAppDir() / "db.sqlite"
+  let db_path: string = getAppDir() / "db.sqlite"
   result = open(db_path, "", "", "")
   DebugLogging("INFO", "connectDB", "Connecting to DB.")
 
@@ -23,11 +23,11 @@ proc newAccount*(username="", password="", email=""): Account =
 
 # アカウントの重複を確認する
 proc checkDuplicateAccount*(value:string or int): bool =
-  let key: string = (if value.type is int: "id" else: "email")
-  let dbConn = connectDB()
-  let isOk = dbConn.exists(Account, &"{key} = ?", value) # valueはemailかid
-  DebugLogging("INFO", "checkDuplicateAccount", &"Checked if account is duplicate -> {$isOk}")
-  return isOk
+  let
+    key: string = (if value.type is int: "id" else: "email")
+    dbConn = connectDB()
+  result = dbConn.exists(Account, &"{key} = ?", value) # valueはemailかid
+  DebugLogging("INFO", "checkDuplicateAccount", &"Checked if account is duplicate -> {$result}")
 
 # パスワードが合っているか確認する
 proc checkAccountFromDB*(email, password:string): bool =
@@ -40,11 +40,12 @@ proc checkAccountFromDB*(email, password:string): bool =
   DebugLogging("SUCCESS", "checkAccountFromDB", &"Password is correct.")
   return true
 
-# AccountをDBからread
+# アカウント情報読み取り
 proc readAccountFromDB*(value:string or int): Account =
-  let key: string = (if value.type is int: "id" else: "email")
-  var account = newAccount()
-  let dbConn = connectDB()
+  var account: Account = newAccount()
+  let
+    key: string = (if value.type is int: "id" else: "email")
+    dbConn = connectDB()
   if not dbConn.exists(Account, &"{key} = ?", value): # # valueはemailかid
     account = nil
     DebugLogging("ERROR", "readAccountFromDB", &"Read nobody's data from Account tables.")
@@ -52,6 +53,20 @@ proc readAccountFromDB*(value:string or int): Account =
     dbConn.select(account, &"{key} = ?", value)
     DebugLogging("SUCCESS", "readAccountFromDB", &"Read {account.username}'s data from Account tables.")
   return account
+
+# アカウントを更新
+proc updateAccountAtDB*(account:var Account): void =
+  let dbConn = connectDB()
+  dbConn.update(account)
+  DebugLogging("INFO", "updateAccountAtDB", &"Updated {account.username}'s account infomation.")
+
+# アカウント削除
+proc deleteAccountAtDB*(account:var Account): void =
+  let
+    username = account.username
+    dbConn = connectDB()
+  dbConn.delete(account)
+  DebugLogging("INFO", "deleteAccountAtDB", &"Deleted {username}'s account.")
 
 #================================================================
 # db作成

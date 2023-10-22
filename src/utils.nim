@@ -29,7 +29,7 @@ proc checkJsonKeys*(jsonBody:JsonNode, keys:seq[string]): bool =
 # jwtでトークンを生成
 proc generateJwt*(id:int, deadlineHour:int): string =
   let private_key: string = loadPrivateKey()
-  var token = toJwt(%*{
+  var jwtToken = toJwt(%*{
     "header":{
       "alg":"HS256",
       "typ":"JWT"
@@ -39,13 +39,13 @@ proc generateJwt*(id:int, deadlineHour:int): string =
       "exp":(getTime() + deadlineHour.hours).toUnix() # TODO: 期限を変える
     }
   })
-  token.sign(private_key)
+  jwtToken.sign(private_key)
   DebugLogging("INFO", "generateJwt", &"Generated token by id '{$id}'.")
-  return $token
+  return $jwtToken
 
 # jwtでトークン認証
 proc verifyJwt*(token:string): bool =
-  let private_key:string = loadPrivateKey()
+  let private_key: string = loadPrivateKey()
   try:
     let jwtToken = token.toJwT()
     result = jwtToken.verify(private_key, HS256)

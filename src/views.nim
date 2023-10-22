@@ -12,16 +12,16 @@ import
 
 # ドメイン
 proc api*(ctx:Context) {.async.} =
-  resp plainTextResponse("ok")
+  resp(plainTextResponse("ok"))
 
 # アカウント認証
 proc auth*(ctx:Context) {.async.} =
   APILogging(ctx.request.reqMethod.`$`, ctx.request.path, "Success to auth."):
-    let req = ctx.request.body.parseJson()
+    let req: JsonNode = ctx.request.body.parseJson()
     # json構造が違うときにHttp400
     if not req.checkJsonKeys(@["email", "password"]):
       resp(jsonResponse(%*{
-        "isSuccess":"false",
+        "is_success":"false",
         "message":"Bad request : Wrong json structure.",
         "token":"",
         "deadline":""
@@ -48,7 +48,7 @@ proc auth*(ctx:Context) {.async.} =
     # パスワードが合っているか確認
     if not checkAccountFromDB(req["email"].getStr(), req["password"].getStr()):
       resp(jsonResponse(%*{
-        "isSuccess":"false",
+        "is_success":"false",
         "message":"Wrong password or email",
         "token":"",
         "deadline":""
@@ -72,7 +72,7 @@ proc auth*(ctx:Context) {.async.} =
 # アカウント作成
 proc createAccount*(ctx:Context) {.async.} =
   APILogging(ctx.request.reqMethod.`$`, ctx.request.path, "Success to create account."):
-    let req = ctx.request.body.parseJson()
+    let req: JsonNode = ctx.request.body.parseJson()
     # json構造が違うときにHttp400
     if not req.checkJsonKeys(@["username", "password", "email"]):
       resp(jsonResponse(%*{
@@ -119,17 +119,19 @@ proc createAccount*(ctx:Context) {.async.} =
 
 # アカウント情報読み込み
 proc readAccount*(ctx:Context) {.async.} =
-  let token = ctx.request.getHeader("Authorization")[0]
-  let id = decodeJwt(token)
+  let token: string = ctx.request.getHeader("Authorization")[0]
+  let id: int = decodeJwt(token)
   # アカウント情報取得
-  var account = readAccountFromDB(id)
+  var account: Account = readAccountFromDB(id)
+  # アカウントが存在しないとき
   if account == nil:
     resp(jsonResponse(%*{
       "is_success":"false",
       "message":"The account does not exist.",
       "username":"",
       "password":"",
-      "email":""
+      "email":"",
+      "id":""
       }, Http400)
     )
     DebugLogging("400", ctx.request.path, "The account does not exist.")
@@ -139,18 +141,100 @@ proc readAccount*(ctx:Context) {.async.} =
     "message":"",
     "username":account.username,
     "password":account.password,
-    "email":account.email
+    "email":account.email,
+    "id":id.`$`
     })
   )
 
 # アカウント情報更新
 proc updateAccount*(ctx:Context) {.async.} =
-  # TODO:アカウントupdate
-  APILogging(ctx.request.reqMethod.`$`, ctx.request.path, "Success to update account."):
-    discard
+  let req: JsonNode = ctx.request.body.parseJson()
+  # json構造が違うときにHttp400
+  if not req.checkJsonKeys(@["username", "password", "email"]):
+    resp(jsonResponse(%*{
+      "is_success":"false",
+      "message":"Bad request : Wrong json structure."
+      }, Http400)
+    )
+    DebugLogging("400", ctx.request.path, "Wrong json structure.")
+    return
+  DebugLogging("INFO",
+    ctx.request.path,
+    &"""Received data -> username:"{req["username"].getStr()}", pw:"{req["password"].getStr()}", email:"{req["email"].getStr()}" """
+  )
+  let
+    username: string = req["username"].getStr()
+    password: string = req["password"].getStr()
+    email: string = req["email"].getStr()
+    token: string = ctx.request.getHeader("Authorization")[0]
+    id: int = decodeJwt(token)
+  var account = readAccountFromDB(id)
+  # アカウントが存在しないとき
+  if account == nil:
+    resp(jsonResponse(%*{
+      "is_success":"false",
+      "message":"The account does not exist.",
+      }, Http400)
+    )
+    DebugLogging("400", ctx.request.path, "The account does not exist.")
+    return
+  # アカウント情報更新
+  if req["username"].getStr() != "":
+    account.username = username
+  if req["password"].getStr() != "":
+    account.password = password
+  if req["email"].getStr() != "":
+    account.email = email
+  updateAccountAtDB(account)
+  resp(jsonResponse(%*{
+    "is_success":"true",
+    "message":""
+    })
+  )
 
 # アカウント削除
 proc deleteAccount*(ctx:Context) {.async.} =
-  # TODO:アカウントdelete
-  APILogging(ctx.request.reqMethod.`$`, ctx.request.path, "Success to delete account."):
-    discard
+  let req: JsonNode = ctx.request.body.parseJson()
+  # json構造が違うときにHttp400
+  if not req.checkJsonKeys(@["password"]):
+    resp(jsonResponse(%*{
+      "is_success":"false",
+      "message":"Bad request : Wrong json structure."
+      }, Http400)
+    )
+    DebugLogging("400", ctx.request.path, "Wrong json structure.")
+    return
+  DebugLogging("INFO",
+    ctx.request.path,
+    &"""Received data -> pw:"{req["password"].getStr()}" """
+  )
+  let
+    password: string = req["password"].getStr()
+    token: string = ctx.request.getHeader("Authorization")[0]
+    id: int = decodeJwt(token)
+  var account = readAccountFromDB(id)
+  # アカウントが存在しないとき
+  if account == nil:
+    resp(jsonResponse(%*{
+      "is_success":"false",
+      "message":"The account does not exist.",
+      }, Http400)
+    )
+    DebugLogging("400", ctx.request.path, "The account does not exist.")
+    return
+  # パスワードが合っているか確認
+  if account.password != password:
+    resp(jsonResponse(%*{
+      "is_success":"false",
+      "message":"Wrong password or email",
+      }, Http400)
+    )
+    DebugLogging("400", ctx.request.path, "Wrong password.")
+    return
+  # アカウント削除
+  deleteAccountAtDB(account)
+  resp(jsonResponse(%*{
+    "is_success":"true",
+    "message":""
+    })
+  )
