@@ -123,6 +123,7 @@ proc readAccount*(ctx:Context) {.async.} =
   let id: int = decodeJwt(token)
   # アカウント情報取得
   var account: Account = readAccountFromDB(id)
+  # アカウントが存在しないとき
   if account == nil:
     resp(jsonResponse(%*{
       "is_success":"false",
@@ -168,6 +169,15 @@ proc updateAccount*(ctx:Context) {.async.} =
     token: string = ctx.request.getHeader("Authorization")[0]
     id: int = decodeJwt(token)
   var account = readAccountFromDB(id)
+  # アカウントが存在しないとき
+  if account == nil:
+    resp(jsonResponse(%*{
+      "is_success":"false",
+      "message":"The account does not exist.",
+      }, Http400)
+    )
+    DebugLogging("400", ctx.request.path, "The account does not exist.")
+    return
   # アカウント情報更新
   if req["username"].getStr() != "":
     account.username = username
@@ -184,6 +194,47 @@ proc updateAccount*(ctx:Context) {.async.} =
 
 # アカウント削除
 proc deleteAccount*(ctx:Context) {.async.} =
-  # TODO:アカウントdelete
-  APILogging(ctx.request.reqMethod.`$`, ctx.request.path, "Success to delete account."):
-    discard
+  let req: JsonNode = ctx.request.body.parseJson()
+  # json構造が違うときにHttp400
+  if not req.checkJsonKeys(@["password"]):
+    resp(jsonResponse(%*{
+      "is_success":"false",
+      "message":"Bad request : Wrong json structure."
+      }, Http400)
+    )
+    DebugLogging("400", ctx.request.path, "Wrong json structure.")
+    return
+  DebugLogging("INFO",
+    ctx.request.path,
+    &"""Received data -> pw:"{req["password"].getStr()}" """
+  )
+  let
+    password: string = req["password"].getStr()
+    token: string = ctx.request.getHeader("Authorization")[0]
+    id: int = decodeJwt(token)
+  var account = readAccountFromDB(id)
+  # アカウントが存在しないとき
+  if account == nil:
+    resp(jsonResponse(%*{
+      "is_success":"false",
+      "message":"The account does not exist.",
+      }, Http400)
+    )
+    DebugLogging("400", ctx.request.path, "The account does not exist.")
+    return
+  # パスワードが合っているか確認
+  if account.password != password:
+    resp(jsonResponse(%*{
+      "is_success":"false",
+      "message":"Wrong password or email",
+      }, Http400)
+    )
+    DebugLogging("400", ctx.request.path, "Wrong password.")
+    return
+  # アカウント削除
+  deleteAccountAtDB(account)
+  resp(jsonResponse(%*{
+    "is_success":"true",
+    "message":""
+    })
+  )

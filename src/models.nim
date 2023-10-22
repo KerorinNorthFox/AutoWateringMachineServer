@@ -58,7 +58,15 @@ proc readAccountFromDB*(value:string or int): Account =
 proc updateAccountAtDB*(account:var Account): void =
   let dbConn = connectDB()
   dbConn.update(account)
-  DebugLogging("INFO", "updateAccountAtDB", &"Update {account.username}'s account infomation.")
+  DebugLogging("INFO", "updateAccountAtDB", &"Updated {account.username}'s account infomation.")
+
+# アカウント削除
+proc deleteAccountAtDB*(account:var Account): void =
+  let
+    username = account.username
+    dbConn = connectDB()
+  dbConn.delete(account)
+  DebugLogging("INFO", "deleteAccountAtDB", &"Deleted {username}'s account.")
 
 #================================================================
 # db作成
