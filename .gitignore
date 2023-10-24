@@ -3,3 +3,4 @@ nimblecache/
 htmldocs/
 private.key
 build/
+*.code-workspace

@@ -41,9 +41,9 @@ proc auth*(ctx:Context) {.async.} =
         "message":"No such an account exists.",
         "token":"",
         "deadline":""
-        }, Http400)
+        }, Http404)
       )
-      DebugLogging("400", ctx.request.path, "No such an account exists.")
+      DebugLogging("404", ctx.request.path, "No such an account exists.")
       return
     # パスワードが合っているか確認
     if not checkAccountFromDB(req["email"].getStr(), req["password"].getStr()):
@@ -107,14 +107,14 @@ proc createAccount*(ctx:Context) {.async.} =
       resp(jsonResponse(%*{
         "is_success":"false",
         "message":"Server database is something wrong."
-        }, Http400)
+        }, Http500)
       )
-      DebugLogging("400", ctx.request.path, "Inserting to db is something wrong.")
+      DebugLogging("500", ctx.request.path, "Inserting to db is something wrong.")
       return
     resp(jsonResponse(%*{
       "is_success":"true",
       "message":""
-      })
+      }, Http201)
     )
 
 # アカウント情報読み込み
@@ -132,9 +132,9 @@ proc readAccount*(ctx:Context) {.async.} =
       "password":"",
       "email":"",
       "id":""
-      }, Http400)
+      }, Http404)
     )
-    DebugLogging("400", ctx.request.path, "The account does not exist.")
+    DebugLogging("404", ctx.request.path, "The account does not exist.")
     return
   resp(jsonResponse(%*{
     "is_success":"true",
@@ -174,9 +174,9 @@ proc updateAccount*(ctx:Context) {.async.} =
     resp(jsonResponse(%*{
       "is_success":"false",
       "message":"The account does not exist.",
-      }, Http400)
+      }, Http404)
     )
-    DebugLogging("400", ctx.request.path, "The account does not exist.")
+    DebugLogging("404", ctx.request.path, "The account does not exist.")
     return
   # アカウント情報更新
   if req["username"].getStr() != "":
@@ -218,9 +218,9 @@ proc deleteAccount*(ctx:Context) {.async.} =
     resp(jsonResponse(%*{
       "is_success":"false",
       "message":"The account does not exist.",
-      }, Http400)
+      }, Http404)
     )
-    DebugLogging("400", ctx.request.path, "The account does not exist.")
+    DebugLogging("404", ctx.request.path, "The account does not exist.")
     return
   # パスワードが合っているか確認
   if account.password != password:
