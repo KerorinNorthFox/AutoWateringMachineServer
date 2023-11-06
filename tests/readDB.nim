@@ -3,13 +3,9 @@ import
   norm/sqlite
 
 createDB()
-var account = newAccount(username="kerorinnf", password="pw", email="a@g")
-insertDB(account)
-var ac = readAccountFromDB("kerorinnf")
-echo "Inserted Account: " & ac[].`$`
+var user = newUser("kerorinnf", "neko", "gmail")
+insertAtDB(user)
 
-let a = checkDuplicateAccount("a@g")
-echo "True email result : " & a.`$`
-
-let b = checkDuplicateAccount("a")
-echo "False emmail result : " & b.`$`
+user = readUserFromDB("gmail")
+echo user.username
+echo user.password
