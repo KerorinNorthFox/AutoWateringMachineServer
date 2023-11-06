@@ -5,16 +5,25 @@ import
 
 let
   urlPatterns* = @[
-  pattern("/", api, HttpGet), # ドメイン
-  pattern("/auth", auth, HttpPost), # アカウント認証
-  pattern("/create-account", createAccount, HttpPost) # アカウント作成
+  # トップレベルドメイン
+  pattern("/", api, HttpGet),
+  # アカウント作成
+  pattern("/create-user", createUser, HttpPost),
+  # ログイン
+  pattern("/auth", auth, HttpPost),
   ]
 
   account_urlPatterns* = @[
-    pattern("/", readAccount, HttpGet, middlewares = @[checkTokenMiddleware()]),
-    pattern("/update", updateAccount, HttpPost, middlewares = @[checkTokenMiddleware()]),
-    pattern("/delete", deleteAccount, HttpPost, middlewares = @[checkTokenMiddleware()]),
-    pattern("/register", registerHardware, HttpPost, middlewares = @[checkTokenMiddleware()]),
-    pattern("/{name}", readHardware, HttpGet, middlewares = @[checkTokenMiddleware()]),
-    pattern("/{name}/update", updateHardware, HttpPost, middlewares = @[checkTokenMiddleware()]),
+    # ユーザー情報取得
+    pattern("/", readUser, HttpGet, middlewares = @[verifyToken()]),
+    # ユーザー情報更新
+    pattern("/update", updateUser, HttpPost, middlewares = @[verifyToken()]),
+    # ユーザー削除
+    pattern("/delete", deleteUser, HttpPost, middlewares = @[verifyToken()]),
+    # ハードウェア登録
+    pattern("/register", registerHardware, HttpPost, middlewares = @[verifyToken()]),
+    # ハードウェア情報取得
+    pattern("/{name}", readHardware, HttpGet, middlewares = @[verifyToken()]),
+    # ハードウェア情報更新
+    pattern("/{name}/update", updateHardware, HttpPost, middlewares = @[verifyToken()]),
   ]
