@@ -12,7 +12,7 @@ when isDebug:
     createDir(log_path)
 
   # ログを出力
-  proc DebugLogging*(level, procName, message:string): void =
+  proc Logging*(level, procName, message:string): void =
     let nowTime = now().format("yyyy-MM-dd HH:mm:ss")
     let logText = &"[{level}]:{procName} -> {message} -> " & nowTime
     echo logText
@@ -27,7 +27,7 @@ when isDebug:
     DebugLogging("200", path, message)
 
 else:
-  proc DebugLogging*(level, text:string): void =
+  proc Logging*(level, text:string): void =
     discard
 
   template APILogging*(reqMethod, path, message:string, body:untyped): untyped =

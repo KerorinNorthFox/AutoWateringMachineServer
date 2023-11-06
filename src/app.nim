@@ -1,10 +1,10 @@
 import
   std/os,
   prologue,
-  ./debugging,
   ./urls
 
 from ./models import createDB
+from ./logging import Logging
 
 # webアプリ管理クラス
 type App = ref object
@@ -27,7 +27,7 @@ proc init(_:type App): App =
 
 # サーバースタート
 proc start(self:App): void =
-  DebugLogging("ServerStart", "start", "===========================================================\nStart the server.")
+  Logging("ServerStart", "start", "===========================================================\nStart the server.")
   if not fileExists(getAppDir() / "db.sqlite"): # db.sqliteがない場合dbを作成
     createDB()
   self.app.run()
