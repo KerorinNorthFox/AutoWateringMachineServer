@@ -2,6 +2,7 @@ import
   std/os,
   std/strformat,
   std/strutils,
+  std/times,
   norm/model,
   norm/sqlite,
   ./debugging
@@ -69,10 +70,79 @@ proc deleteAccountAtDB*(account:var Account): void =
   DebugLogging("INFO", "deleteAccountAtDB", &"Deleted {username}'s account.")
 
 #================================================================
+type Temperature* = ref object of Model
+  temperature*: float
+
+proc newTemperature(temperature=0.0): Temperature =
+  Temperature(temperature:temperature)
+
+#================================================================
+type Humidity* = ref object of Model
+  humidity*: float
+
+proc newHumidity(humidity=0.0): Humidity =
+  Humidity(humidity:humidity)
+
+#===============================================================
+type Schedule* = ref object of Model
+  schedule*: string
+
+proc newSchedule(schedule=now().format("yyyy-MM-dd HH:mm")): Schedule =
+  Schedule(schedule:schedule)
+
+#===============================================p=================
+type Hardware* = ref object of Model
+  account*: Account
+  name*: string
+  temperature*: Temperature
+  humidity*: Humidity
+  schedule*: Schedule
+
+proc newHardware*(account=newAccount(),
+  name="",
+  temperature=newTemperature(),
+  humidity=newHumidity(),
+  schedule=newSchedule()
+): Hardware =
+  Hardware(
+    account:account,
+    name:name,
+    temperature:temperature,
+    humidity:humidity,
+    schedule:schedule
+  )
+
+proc checkDuplicateHardware*(account:Account, name:string): bool =
+  let dbConn = connectDB()
+  var hardwares = @[newHardware()]
+  dbConn.selectOneToMany(account, hardwares, "account")
+  result = true
+  for a in hardwares:
+    echo a.name
+    echo name
+    if a.name == name:
+      result = false
+    else:
+      result = true
+  DebugLogging("INFO", "checkDuplicateHardware", &"Checked if hardware is duplicate -> {$result}")
+
+proc readHardwareFromDB*(account:Account): seq[Hardware] =
+  var hardwares = @[newHardware()]
+  let dbConn = connectDB()
+  dbConn.selectOneToMany(account, hardwares, "account")
+  DebugLogging("SUCCESS", "readHardwareFromDB", &"Read {account.username}'s hardwares from Hardware tables.")
+  return hardwares
+
+proc updateHardwareAtDB*(hardware:var Hardware): void =
+  let dbConn = connectDB()
+  dbConn.update(hardware)
+  DebugLogging("INFO", "updateHardwareAtDB", &"Updated {hardware.name}'s hardware infomation.")
+
+#================================================================
 # db作成
 proc createDB*(): void =
   let dbConn = connectDB()
-  dbConn.createTables(newAccount())
+  dbConn.createTables(newHardware())
   # TODO:ここにモデルを随時追加
   DebugLogging("INFO", "createDB", "Created tables.")
 

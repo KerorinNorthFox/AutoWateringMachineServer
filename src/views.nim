@@ -1,6 +1,7 @@
 import
   std/json,
   std/strformat,
+  std/strutils,
   std/times,
   prologue,
   norm/model,
@@ -142,7 +143,7 @@ proc readAccount*(ctx:Context) {.async.} =
     "username":account.username,
     "password":account.password,
     "email":account.email,
-    "id":id.`$`
+    "id":account.id.`$`
     })
   )
 
@@ -163,9 +164,6 @@ proc updateAccount*(ctx:Context) {.async.} =
     &"""Received data -> username:"{req["username"].getStr()}", pw:"{req["password"].getStr()}", email:"{req["email"].getStr()}" """
   )
   let
-    username: string = req["username"].getStr()
-    password: string = req["password"].getStr()
-    email: string = req["email"].getStr()
     token: string = ctx.request.getHeader("Authorization")[0]
     id: int = decodeJwt(token)
   var account = readAccountFromDB(id)
@@ -179,11 +177,15 @@ proc updateAccount*(ctx:Context) {.async.} =
     DebugLogging("404", ctx.request.path, "The account does not exist.")
     return
   # アカウント情報更新
-  if req["username"].getStr() != "":
+  let
+    username: string = req["username"].getStr()
+    password: string = req["password"].getStr()
+    email: string = req["email"].getStr()
+  if username != "":
     account.username = username
-  if req["password"].getStr() != "":
+  if password != "":
     account.password = password
-  if req["email"].getStr() != "":
+  if email != "":
     account.email = email
   updateAccountAtDB(account)
   resp(jsonResponse(%*{
@@ -233,6 +235,194 @@ proc deleteAccount*(ctx:Context) {.async.} =
     return
   # アカウント削除
   deleteAccountAtDB(account)
+  resp(jsonResponse(%*{
+    "is_success":"true",
+    "message":""
+    })
+  )
+
+# ハードウェア登録
+proc registerHardware*(ctx:Context) {.async.} =
+  let req: JsonNode = ctx.request.body.parseJson()
+  # json構造が違うときにHttp400
+  if not req.checkJsonKeys(@["name"]):
+    resp(jsonResponse(%*{
+      "is_success":"false",
+      "message":"Bad request : Wrong json structure."
+      }, Http400)
+    )
+    DebugLogging("400", ctx.request.path, "Wrong json structure.")
+    return
+  DebugLogging("INFO",
+    ctx.request.path,
+    &"""Received data -> name:"{req["name"].getStr()}" """
+  )
+  let
+    token: string = ctx.request.getHeader("Authorization")[0]
+    id: int = decodeJwt(token)
+  # アカウント情報取得
+  var account: Account = readAccountFromDB(id)
+  # アカウントが存在しないとき
+  if account == nil:
+    resp(jsonResponse(%*{
+      "is_success":"false",
+      "message":"The account does not exist."
+      }, Http404)
+    )
+    DebugLogging("404", ctx.request.path, "The account does not exist.")
+    return
+  # ハードウェアの重複確認
+  if not checkDuplicateHardware(account, req["name"].getStr()):
+    resp(jsonResponse(%*{
+      "is_success":"false",
+      "message":"A Hardware with the given name already exists."
+      }, Http400)
+    )
+    DebugLogging("400", ctx.request.path, "A Hardware with the given name already exists.")
+    return
+  # ハードウェア作成
+  var hardware: Hardware = newHardware(
+    account = account,
+    name=req["name"].getStr(),
+  )
+  try:
+    hardware.insertDB()
+  except:
+    resp(jsonResponse(%*{
+      "is_success":"false",
+      "message":"Server database is something wrong."
+      }, Http500)
+    )
+    DebugLogging("500", ctx.request.path, "Inserting to db is something wrong.")
+    return
+  resp(jsonResponse(%*{
+    "is_success":"true",
+    "message":""
+    }, Http201)
+  )
+
+proc readHardware*(ctx:Context) {.async.} =
+  let
+    token: string = ctx.request.getHeader("Authorization")[0]
+    id: int = decodeJwt(token)
+    name: string = ctx.getPathParamsOption("name").get()
+  # アカウント情報取得
+  var account: Account = readAccountFromDB(id)
+  # アカウントが存在しないとき
+  if account == nil:
+    resp(jsonResponse(%*{
+      "is_success":"false",
+      "message":"The account does not exist.",
+      "username":"",
+      "name":"",
+      "temperature":"",
+      "humidity":"",
+      "schedule":"",
+      "id":""
+      }, Http404)
+    )
+    DebugLogging("404", ctx.request.path, "The account does not exist.")
+    return
+  # ハードウェア情報取得
+  var hardwares: seq[Hardware] = readHardwareFromDB(account)
+  var hardware: Hardware
+  for i, a in hardwares:
+    DebugLogging("INFO", "raedHardware", &"Read {i} hardware : {a[]}")
+    if a.name == name:
+      hardware = a
+  if hardware.isNil:
+    let msg = &"The hardware '{name}' does not exist."
+    resp(jsonResponse(%*{
+      "is_success":"false",
+      "message":msg,
+      "username":"",
+      "name":"",
+      "temperature":"",
+      "humidity":"",
+      "schedule":"",
+      "id":""
+      }, Http400)
+    )
+    DebugLogging("400", ctx.request.path, msg)
+    return
+  resp(jsonResponse(%*{
+    "is_success":"true",
+    "message":"",
+    "username":hardware.account.username,
+    "name":hardware.name,
+    "temperature":hardware.temperature.temperature.`$`,
+    "humidity":hardware.humidity.humidity.`$`,
+    "schedule":hardware.schedule.schedule,
+    "id":hardware.id.`$`,
+    }, Http201)
+  )
+
+proc updateHardware*(ctx:Context) {.async.} =
+  let req: JsonNode = ctx.request.body.parseJson()
+  # json構造が違うときにHttp400
+  if not req.checkJsonKeys(@["name", "temperature", "humidity", "schedule"]):
+    resp(jsonResponse(%*{
+      "is_success":"false",
+      "message":"Bad request : Wrong json structure."
+      }, Http400)
+    )
+    DebugLogging("400", ctx.request.path, "Wrong json structure.")
+    return
+  DebugLogging("INFO",
+    ctx.request.path,
+    &"""Received data -> name:"{req["name"].getStr()}" """
+  )
+  let
+    token: string = ctx.request.getHeader("Authorization")[0]
+    id: int = decodeJwt(token)
+    nameParam: string = ctx.getPathParamsOption("name").get()
+  var account = readAccountFromDB(id)
+  # アカウントが存在しないとき
+  if account == nil:
+    resp(jsonResponse(%*{
+      "is_success":"false",
+      "message":"The account does not exist."
+      }, Http404)
+    )
+    DebugLogging("404", ctx.request.path, "The account does not exist.")
+    return
+  # ハードウェア情報更新
+  var hardwares: seq[Hardware] = readHardwareFromDB(account)
+  var hardware: Hardware
+  for i, a in hardwares:
+    DebugLogging("INFO", "raedHardware", &"Read {i} hardware : {a[]}")
+    if a.name == nameParam:
+      hardware = a
+  if hardware.isNil:
+    let msg = &"The hardware '{nameParam}' does not exist."
+    resp(jsonResponse(%*{
+      "is_success":"false",
+      "message":msg
+      }, Http400)
+    )
+    DebugLogging("400", ctx.request.path, msg)
+    return
+  let
+    name = req["name"].getStr()
+    temperature = req["temperature"].getStr()
+    humidity = req["humidity"].getStr()
+    schedule = req["schedule"].getStr()
+  if name != "":
+    hardware.name = name
+  if schedule != "":
+    hardware.schedule.schedule = schedule
+  try:
+    if temperature != "":
+      hardware.temperature.temperature = temperature.parseFloat
+    if humidity != "":
+      hardware.humidity.humidity = humidity.parseFloat
+  except:
+    resp(jsonResponse(%*{
+      "is_success":"false",
+      "message":"Cannot cast values because of wrong type."
+      }, Http400)
+    )
+  updateHardwareAtDB(hardware)
   resp(jsonResponse(%*{
     "is_success":"true",
     "message":""

@@ -14,4 +14,7 @@ let
     pattern("/", readAccount, HttpGet, middlewares = @[checkTokenMiddleware()]),
     pattern("/update", updateAccount, HttpPost, middlewares = @[checkTokenMiddleware()]),
     pattern("/delete", deleteAccount, HttpPost, middlewares = @[checkTokenMiddleware()]),
+    pattern("/register", registerHardware, HttpPost, middlewares = @[checkTokenMiddleware()]),
+    pattern("/{name}", readHardware, HttpGet, middlewares = @[checkTokenMiddleware()]),
+    pattern("/{name}/update", updateHardware, HttpPost, middlewares = @[checkTokenMiddleware()]),
   ]
