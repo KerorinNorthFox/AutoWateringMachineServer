@@ -17,7 +17,7 @@ proc loadPrivateKey*(): string =
 
 # jsonの中に全てのキーが存在するか確認
 proc checkJsonKeys*(jsonBody:JsonNode, keys:seq[string]): bool =
-  if jsonBody.len != keys.len:
+  if jsonBody.len > keys.len:
     Logging("ERROR", "checkJsonKeys", "Detected excess keys.")
     return false
   for key in keys:
@@ -29,7 +29,6 @@ proc checkJsonKeys*(jsonBody:JsonNode, keys:seq[string]): bool =
 
 # jwtでトークンを生成
 proc generateJwt*(id:int, deadlineHour:int): string =
-  let private_key: string = loadPrivateKey()
   var jwtToken = toJwt(%*{
     "header":{
       "alg":"HS256",
@@ -40,16 +39,14 @@ proc generateJwt*(id:int, deadlineHour:int): string =
       "exp":(getTime() + deadlineHour.hours).toUnix() # TODO: 期限を変える
     }
   })
-  jwtToken.sign(private_key)
+  jwtToken.sign(loadPrivateKey())
   Logging("INFO", "generateJwt", &"Generated token by id '{$id}'.")
   return $jwtToken
 
 # jwtでトークン認証
 proc verifyJwt*(token:string): bool =
-  let private_key: string = loadPrivateKey()
   try:
-    let jwtToken = token.toJwT()
-    result = jwtToken.verify(private_key, HS256)
+    result = token.toJwT().verify(loadPrivateKey(), HS256)
     Logging("SUCCESS", "verifyJwt", "Token varification is successful.")
   except:
     result = false
@@ -57,6 +54,5 @@ proc verifyJwt*(token:string): bool =
 
 # jwtでトークンからidを取り出し
 proc decodeJwt*(token:string): int =
-  let jwtToken = token.toJWT()
-  result = jwtToken.claims["userId"].node[].num
+  result = token.toJWT().claims["userId"].node[].num
   Logging("INFO", "decodeJwt", &"Decoded token -> {$result}")
