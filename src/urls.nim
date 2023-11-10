@@ -26,4 +26,8 @@ let
     pattern("/{name}", readHardware, HttpGet, middlewares = @[verifyToken()]),
     # ハードウェア情報更新
     pattern("/{name}/update", updateHardware, HttpPost, middlewares = @[verifyToken()]),
+    # ハードウェアの最新の温度取得
+    pattern("/{name}/temperature/latest", readLatestTemperature, HttpGet, middlewares = @[verifyToken()]),
+    # ハードウェアの温度をDBに格納
+    pattern("/{name}/temperature", insertTemperature, HttpPost, middlewares = @[verifyToken()]),
   ]
