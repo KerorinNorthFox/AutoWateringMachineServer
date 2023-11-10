@@ -7,24 +7,24 @@ const isDebug {.booldefine.} : bool = true
 
 when isDebug:
   # ログを保存するディレクトリがないとき作る
-  let log_path = getAppDir() / "log"
+  let log_path: string = getAppDir() / "log"
   if not dirExists(log_path):
     createDir(log_path)
 
   # ログを出力
   proc Logging*(level, procName, message:string): void =
-    let nowTime = now().format("yyyy-MM-dd HH:mm:ss")
-    let logText = &"[{level}]:{procName} -> {message} -> " & nowTime
+    let nowTime: string = now().format("yyyy-MM-dd HH:mm:ss")
+    let logText: string = &"[{level}]:{procName} -> {message} -> " & nowTime
     echo logText
-    let f = open(getAppDir() / "log" / "log.txt", fmAppend)
+    let f: File = open(getAppDir() / "log" / "log.txt", fmAppend)
     f.writeLine(logText)
     f.close()
 
   # apiにアクセスした時のログを出力
   template APILogging*(reqMethod, path, message:string, body:untyped): untyped =
-    DebugLogging(reqMethod, path, "Http"&reqMethod&" comes.")
+    Logging(reqMethod, path, "Http"&reqMethod&" comes.")
     body
-    DebugLogging("200", path, message)
+    Logging("200", path, message)
 
 else:
   proc Logging*(level, text:string): void =
