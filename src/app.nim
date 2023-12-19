@@ -23,7 +23,7 @@ proc init(_:type App): App =
   result = App()
   result.app = newApp(settings=settings)
   result.app.addRoute(urlPatterns, "/api")
-  result.app.addRoute(account_urlPatterns, "/api/user")
+  result.app.addRoute(userUrlPatterns, "/api/user")
 
 # サーバースタート
 proc start(self:App): void =

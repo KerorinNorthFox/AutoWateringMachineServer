@@ -8,12 +8,12 @@ let
   # トップレベルドメイン
   pattern("/", api, HttpGet),
   # アカウント作成
-  pattern("/create-user", createUser, HttpPost),
+  pattern("/register", registerUser, HttpPost),
   # ログイン
   pattern("/auth", auth, HttpPost),
   ]
 
-  account_urlPatterns* = @[
+  userUrlPatterns* = @[
     # ユーザー情報取得
     pattern("/", readUser, HttpGet, middlewares = @[verifyToken()]),
     # ユーザー情報更新

@@ -13,15 +13,49 @@ proc connectDB*(): auto =
   Logging("INFO", "connectDB", "Connected to DB.")
 
 #================================================================
-# ユーザーモデル
-type User* = ref object of Model
-  # ユーザー名
-  username*: string
-  # パスワード
-  password*: string
-  # メールアドレス
-  email*: string
+type
+  # ユーザーモデル
+  User* = ref object of Model
+    # ユーザー名
+    username*: string
+    # パスワード
+    password*: string
+    # メールアドレス
+    email*: string
 
+  # ハードウェアモデル
+  Hardware* = ref object of Model
+    # ハードウェアの属するユーザー
+    user*: User
+    # ハードウェアの名前
+    name*: string
+
+  # 温度モデル
+  Temperature* = ref object of Model
+    # 属するハードウェア
+    hardware*: Hardware
+    # 温度
+    temperature*: float
+    # 測定日時
+    date*: string
+
+  # 湿度モデル
+  Humidity* = ref object of Model
+    # 属するハードウェア
+    hardware*: Hardware
+    # 湿度
+    humidity*: float
+    # 測定日時
+    date*: string
+
+  # スケジュールモデル
+  Schedule* = ref object of Model
+    # 属するハードウェア
+    hardware*: Hardware
+    # スケジュール
+    schedule*: string
+
+#================================================================
 # initialize User
 proc newUser*(username="", password="", email=""): User =
   User(username:username, password:password, email:email)
@@ -52,7 +86,6 @@ proc deleteUserAtDB*(user:var User): void =
     username: string = user.username
     dbConn = connectDB()
   dbConn.delete(user)
-  # TODO: 関連するハードウェアなどのレコードも削除する
   Logging("INFO", "deleteUserAtDB", &"Deleted {username}'s account.")
 
 # emailの重複を確認する
@@ -79,13 +112,6 @@ proc checkUserExists*(id:int): bool =
   return dbConn.exists(User, "id = ?", id)
 
 #================================================================
-# ハードウェアモデル
-type Hardware* = ref object of Model
-  # ハードウェアの属するユーザー
-  user*: User
-  # ハードウェアの名前
-  name*: string
-
 # initialize Hardware
 proc newHardware*(user=newUser(),
   name="",
@@ -95,33 +121,31 @@ proc newHardware*(user=newUser(),
     name:name
   )
 
+# ハードウェア一覧を取得
+proc getHardwares(user:User): seq[Hardware] =
+  var hardwares = @[newHardware()]
+  let dbConn = connectDB()
+  dbConn.selectOneToMany(user, hardwares, "user")
+  return hardwares
+
 # ハードウェア名の重複を確認
 proc checkDuplicateHardware*(user:User, name:string): bool =
-  let dbConn = connectDB()
-  var hardwares = @[newHardware()]
-  dbConn.selectOneToMany(user, hardwares, "user")
+  let hardwares = getHardwares(user)
   result = true
-  for h in hardwares:
-    echo h.name
-    echo name
-    if h.name == name:
+  for hardware in hardwares:
+    if hardware.name == name:
       result = false
-    else:
-      result = true
   Logging("INFO", "checkDuplicateHardware", &"Checked if hardware is duplicate -> {$result}")
 
 # ハードウェア情報取得
 proc readHardwareFromDB*(user:User, name:string): Hardware =
-  var hardwares = @[newHardware()]
-  let dbConn = connectDB()
-  dbConn.selectOneToMany(user, hardwares, "user")
-  var hardware: Hardware
-  for i, h in hardwares:
-    Logging("INFO", "raedHardware", &"Read {i} hardware : {h[]}")
-    if h.name == name:
-      hardware = h
+  result = newHardware()
+  let hardwares = getHardwares(user)
+  for i, hardware in hardwares:
+    Logging("INFO", "raedHardware", &"Read {i} hardware : {hardware[]}")
+    if hardware.name == name:
+      result = hardware
   Logging("INFO", "readHardwareFromDB", &"Read {user.username}'s hardwares from Hardware tables.")
-  return hardware
 
 # ハードウェア情報更新
 proc updateHardwareAtDB*(hardware:var Hardware): void =
@@ -130,58 +154,40 @@ proc updateHardwareAtDB*(hardware:var Hardware): void =
   Logging("INFO", "updateHardwareAtDB", &"Updated {hardware.name}'s hardware infomation.")
 
 #================================================================
-# 温度モデル
-type Temperature* = ref object of Model
-  # 属するハードウェア
-  hardware*: Hardware
-  # 温度
-  temperature*: float
-  # 測定日時
-  date*: string
-
 # initialize Temperature
 proc newTemperature*(hardware=newHardware(), temperature=0.0, date=""): Temperature =
   Temperature(hardware:hardware, temperature:temperature, date:date)
 
-# ハードウェアの温度のレコードを全て取得
-proc readTemperatureFromDB*(hardware:Hardware): seq[Temperature] =
+# 温度のレコードを全部取得
+proc getTemperatures(hardware:Hardware): seq[Temperature] =
   var temperatures = @[newTemperature()]
   let dbConn = connectDB()
   dbConn.selectOneToMany(hardware, temperatures, "hardware")
-  result = temperatures
+  return temperatures
+
+# ハードウェアの温度のレコードを全て取得
+proc readTemperatureFromDB*(hardware:Hardware): seq[Temperature] =
+  result = getTemperatures(hardware)
   Logging("INFO", "readTemperatureFromDB", "Read {hardware.name}'s latest temperature from Temperature tables.")
 
 #================================================================
-# 湿度モデル
-type Humidity* = ref object of Model
-  # 属するハードウェア
-  hardware*: Hardware
-  # 湿度
-  humidity*: float
-  # 測定日時
-  date*: string
-
 # initialize Humidity
 proc newHumidity(hardware=newHardware(), humidity=0.0, date=""): Humidity =
   Humidity(hardware:hardware, humidity:humidity, date:date)
 
-# ハードウェアの湿度のレコードを全て取得
-proc readHumidityFromDB*(hardware:Hardware): seq[Humidity] =
+# 湿度のレコードを全部取得
+proc getHumidities(hardware:Hardware): seq[Humidity] =
   var humidities = @[newHumidity()]
   let dbConn = connectDB()
   dbConn.selectOneToMany(hardware, humidities, "hardware")
-  result = humidities
+  return humidities
+
+# ハードウェアの湿度のレコードを全て取得
+proc readHumidityFromDB*(hardware:Hardware): seq[Humidity] =
+  result = getHumidities(hardware)
   Logging("INFO", "readHumidityFromDB", "Read {hardware.name}'s latest temperature from Humidity tables.")
 
-
 #================================================================
-# スケジュールモデル
-type Schedule* = ref object of Model
-  # 属するハードウェア
-  hardware*: Hardware
-  # スケジュール
-  schedule*: string
-
 # initialize Schedule
 proc newSchedule(hardware=newHardware(), schedule=""): Schedule =
   Schedule(hardware:hardware, schedule:schedule)

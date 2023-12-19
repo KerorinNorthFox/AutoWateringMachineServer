@@ -15,7 +15,7 @@ proc api*(ctx:Context) {.async.} =
   resp(plainTextResponse("ok"))
 
 # アカウント作成
-proc createUser*(ctx:Context) {.async.} =
+proc registerUser*(ctx:Context) {.async.} =
   APILogging(ctx.request.reqMethod.`$`, ctx.request.path, "Success to create account."):
     var req: JsonNode
     try:
