@@ -133,16 +133,17 @@ proc checkDuplicateHardware*(user:User, name:string): bool =
   let hardwares = getHardwares(user)
   result = true
   for hardware in hardwares:
+    echo hardware.name
     if hardware.name == name:
       result = false
   Logging("INFO", "checkDuplicateHardware", &"Checked if hardware is duplicate -> {$result}")
 
 # ハードウェア情報取得
 proc readHardwareFromDB*(user:User, name:string): Hardware =
-  result = newHardware()
+  result = nil
   let hardwares = getHardwares(user)
   for i, hardware in hardwares:
-    Logging("INFO", "raedHardware", &"Read {i} hardware : {hardware[]}")
+    Logging("INFO", "readHardware", &"Read {i} hardware : {hardware[]}")
     if hardware.name == name:
       result = hardware
   Logging("INFO", "readHardwareFromDB", &"Read {user.username}'s hardwares from Hardware tables.")
