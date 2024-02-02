@@ -30,4 +30,8 @@ let
     pattern("/{name}/temperature/latest", readLatestTemperature, HttpGet, middlewares = @[verifyToken()]),
     # ハードウェアの温度をDBに格納
     pattern("/{name}/temperature", insertTemperature, HttpPost, middlewares = @[verifyToken()]),
+    pattern("/{name}/humidity/latest", readLatestHumidity, HttpGet, middlewares = @[verifyToken()]),
+    pattern("/{name}/humidity", insertHumidity, HttpPost, middlewares = @[verifyToken()]),
+    pattern("/{name}/schedule/latest", readLatestSchedule, HttpGet, middlewares = @[verifyToken()]),
+    pattern("/{name}/schedule", insertSchedule, HttpPost, middlewares = @[verifyToken()])
   ]

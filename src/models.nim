@@ -173,7 +173,7 @@ proc readTemperatureFromDB*(hardware:Hardware): seq[Temperature] =
 
 #================================================================
 # initialize Humidity
-proc newHumidity(hardware=newHardware(), humidity=0.0, date=""): Humidity =
+proc newHumidity*(hardware=newHardware(), humidity=0.0, date=""): Humidity =
   Humidity(hardware:hardware, humidity:humidity, date:date)
 
 # 湿度のレコードを全部取得
@@ -190,8 +190,18 @@ proc readHumidityFromDB*(hardware:Hardware): seq[Humidity] =
 
 #================================================================
 # initialize Schedule
-proc newSchedule(hardware=newHardware(), schedule=""): Schedule =
+proc newSchedule*(hardware=newHardware(), schedule=""): Schedule =
   Schedule(hardware:hardware, schedule:schedule)
+
+proc getSchedules(hardware:Hardware): seq[Schedule] =
+  var schedules = @[newSchedule()]
+  let dbConn = connectDB()
+  dbConn.selectOneToMany(hardware, schedules, "hardware")
+  return schedules
+
+proc readScheduleFromDB*(hardware:Hardware): seq[Schedule] =
+  result = getSchedules(hardware)
+  Logging("INFO", "readScheduleFromDB", "Read {hardware.name}'s latest schedule from Schedule tables.")
 
 #================================================================
 # dbのテーブル作成

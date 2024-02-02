@@ -36,7 +36,6 @@ proc generateJwt*(id:int, deadlineHour:int): string =
     },
     "claims":{
       "userId":id,
-      "exp":(getTime() + deadlineHour.hours).toUnix() # TODO: 期限を変える
     }
   })
   jwtToken.sign(loadPrivateKey())
